@@ -1,28 +1,9 @@
-FROM golang:1.24.3-alpine AS build
-ARG VERSION="dev"
+# Simple Dockerfile for Railway deployment
+FROM ghcr.io/github/github-mcp-server:latest
 
-# Set the working directory
-WORKDIR /build
+# Railway expects the app to listen on PORT
+ENV PORT=3000
+EXPOSE $PORT
 
-# Install git
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add git
-
-# Build the server
-# go build automatically download required module dependencies to /go/pkg/mod
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=bind,target=. \
-    CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION} -X main.commit=$(git rev-parse HEAD) -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    -o /bin/github-mcp-server cmd/github-mcp-server/main.go
-
-# Make a stage to run the app
-FROM gcr.io/distroless/base-debian12
-# Set the working directory
-WORKDIR /server
-# Copy the binary from the build stage
-COPY --from=build /bin/github-mcp-server .
-# Set the entrypoint to the server binary
-ENTRYPOINT ["/server/github-mcp-server"]
-# Default arguments for ENTRYPOINT
-CMD ["stdio"]
+# Use the pre-built binary
+CMD ["./github-mcp-server"]
